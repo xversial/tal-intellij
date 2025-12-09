@@ -50,3 +50,32 @@ Plugin based on the [IntelliJ Platform Plugin Template][template].
 
 [template]: https://github.com/JetBrains/intellij-platform-plugin-template
 [docs:plugin-description]: https://plugins.jetbrains.com/docs/intellij/plugin-user-experience.html#plugin-description-and-presentation
+
+
+### System trust store (fix PKIX/SSL errors behind corporate interceptors)
+
+If your security agent intercepts TLS and you want Gradle to trust your OS certificate store without managing custom truststores:
+
+- macOS: use Keychain as the JSSE trust store
+- Windows: use the Windows system root store
+
+This project’s Gradle wrappers support an opt-in switch that passes the proper JVM flags before Gradle starts.
+
+Enable one of the following:
+
+1) Per-shell (recommended):
+```
+export USE_SYSTEM_TRUST_STORE=true
+./gradlew buildPlugin
+```
+
+2) Per-project (committed): add to this repo’s `gradle.properties`:
+```
+useSystemTrustStore=true
+```
+
+Notes:
+- Linux has no generic system trust store for JSSE; the toggle is ignored on Linux.
+- On macOS this uses `-Djavax.net.ssl.trustStore=NONE -Djavax.net.ssl.trustStoreType=KeychainStore`.
+- On Windows it uses `-Djavax.net.ssl.trustStore=NONE -Djavax.net.ssl.trustStoreType=Windows-ROOT`.
+- If your JDK distribution doesn’t support these store types, leave this off and instead configure a user truststore via `~/.gradle/gradle.properties` with `org.gradle.jvmargs=...` as described in the earlier troubleshooting guidance.

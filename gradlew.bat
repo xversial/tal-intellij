@@ -35,6 +35,22 @@ set APP_HOME=%DIRNAME%
 @rem Resolve any "." and ".." in APP_HOME to make it shorter.
 for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
 
+@rem ------------------------------------------------------------
+@rem Optional: Use the Windows system trust store for JSSE
+@rem Enable via either:
+@rem   - Environment variable: USE_SYSTEM_TRUST_STORE=true
+@rem   - Project property in gradle.properties: useSystemTrustStore=true
+@rem Note: On non-Windows shells use the POSIX wrapper which also supports macOS Keychain.
+@rem ------------------------------------------------------------
+set "_USE_SYS_TS="
+if /I "%USE_SYSTEM_TRUST_STORE%"=="true" set "_USE_SYS_TS=1"
+if exist "%APP_HOME%\gradle.properties" (
+  findstr /R /C:"^[ ]*useSystemTrustStore[ ]*=[ ]*true[ ]*$" "%APP_HOME%\gradle.properties" >NUL 2>&1 && set "_USE_SYS_TS=1"
+)
+if defined _USE_SYS_TS (
+  set "GRADLE_OPTS=%GRADLE_OPTS% -Djavax.net.ssl.trustStore=NONE -Djavax.net.ssl.trustStoreType=Windows-ROOT"
+)
+
 @rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
 set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
 

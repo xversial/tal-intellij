@@ -115,6 +115,37 @@ case "$( uname )" in                #(
 esac
 
 
+# ------------------------------------------------------------
+# Optional: Use the operating system trust store for JSSE
+#
+# Enable via either:
+#   - Environment variable: USE_SYSTEM_TRUST_STORE=true
+#   - Project property in gradle.properties: useSystemTrustStore=true
+#
+# macOS  : uses KeychainStore
+# Windows: uses Windows-ROOT (handled here for Git Bash/Cygwin; on native cmd use gradlew.bat)
+# Linux  : no generic system trust store; this toggle is ignored with a warning.
+# ------------------------------------------------------------
+enable_system_trust_store=
+if [ -n "$USE_SYSTEM_TRUST_STORE" ]; then
+    enable_system_trust_store=1
+elif [ -f "$APP_HOME/gradle.properties" ] && grep -Eq '^[[:space:]]*useSystemTrustStore[[:space:]]*=[[:space:]]*true[[:space:]]*$' "$APP_HOME/gradle.properties"; then
+    enable_system_trust_store=1
+fi
+
+if [ -n "$enable_system_trust_store" ]; then
+    if "$darwin"; then
+        # Use macOS Keychain as trust store
+        GRADLE_OPTS="${GRADLE_OPTS} -Djavax.net.ssl.trustStore=NONE -Djavax.net.ssl.trustStoreType=KeychainStore"
+    elif "$cygwin" || "$msys"; then
+        # Use Windows system root store when running under Cygwin/MSYS
+        GRADLE_OPTS="${GRADLE_OPTS} -Djavax.net.ssl.trustStore=NONE -Djavax.net.ssl.trustStoreType=Windows-ROOT"
+    else
+        warn "useSystemTrustStore enabled, but this OS has no generic system trust store; leaving defaults."
+    fi
+fi
+
+
 
 # Determine the Java command to use to start the JVM.
 if [ -n "$JAVA_HOME" ] ; then
