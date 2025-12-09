@@ -25,11 +25,11 @@ class TalFoldingBuilder : FoldingBuilderEx() {
             val closeIdx = text.indexOf(closeFold, openEnd + 1)
             if (closeIdx < 0) break
             val range = TextRange(idx, closeIdx + closeFold.length)
-            // Try to extract a stable name for persistence based on desc attribute; fall back to start offset
+            // Use a stable descriptor for persistence but keep a clean display name
             val header = text.subSequence(idx, openEnd + 1).toString()
             val desc = extractAttribute(header, "desc")
-            val name = (desc?.takeIf { it.isNotBlank() } ?: "editor-fold") + "@" + idx
-            descriptors += NamedFoldingDescriptor(root.node, range, null, name)
+            val display = (desc?.takeIf { it.isNotBlank() } ?: "editor-fold")
+            descriptors += NamedFoldingDescriptor(root.node, range, null, display)
             idx = closeIdx + closeFold.length
         }
 
@@ -52,9 +52,8 @@ class TalFoldingBuilder : FoldingBuilderEx() {
                     val start = regionStack.removeLastOrNull()
                     if (start != null) {
                         val range = TextRange(start.start, lineEnd)
-                        val base = if (start.name.isNotBlank()) start.name else "region"
-                        val name = "$base@${start.start}"
-                        descriptors += NamedFoldingDescriptor(root.node, range, null, name)
+                        val display = if (start.name.isNotBlank()) start.name else "region"
+                        descriptors += NamedFoldingDescriptor(root.node, range, null, display)
                     }
                 }
             }
