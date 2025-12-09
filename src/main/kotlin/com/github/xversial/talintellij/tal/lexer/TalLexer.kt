@@ -64,7 +64,8 @@ class TalLexer : LexerBase() {
             tokenType = TalTokens.LINE_COMMENT
             return
         }
-        if (c == '#' && (i == startOffset || prev == '\n' || prev == '\r')) {
+        // Hash line comments, but not regex ("#/...") at line start
+        if (c == '#' && (i == startOffset || prev == '\n' || prev == '\r') && !(i + 1 < endOffset && buffer[i + 1] == '/')) {
             val start = i
             i++
             while (i < endOffset && buffer[i] != '\n' && buffer[i] != '\r') i++
@@ -83,6 +84,20 @@ class TalLexer : LexerBase() {
             tokenStart = start
             tokenEnd = i
             tokenType = TalTokens.BLOCK_COMMENT
+            return
+        }
+
+        // Multiline string literal """..."""
+        if (c == '"' && i + 2 < endOffset && buffer[i + 1] == '"' && buffer[i + 2] == '"') {
+            val start = i
+            i += 3
+            while (i + 2 < endOffset && !(buffer[i] == '"' && buffer[i + 1] == '"' && buffer[i + 2] == '"')) {
+                i++
+            }
+            if (i + 2 < endOffset) i += 3
+            tokenStart = start
+            tokenEnd = i
+            tokenType = TalTokens.MULTILINE_STRING
             return
         }
 
@@ -135,17 +150,100 @@ class TalLexer : LexerBase() {
             return
         }
 
+        // Regex literal #/.../flags
+        if (c == '#' && i + 1 < endOffset && buffer[i + 1] == '/') {
+            val start = i
+            i += 2
+            var escaped = false
+            var inClass = false
+            while (i < endOffset) {
+                val ch = buffer[i]
+                if (escaped) {
+                    escaped = false
+                } else when (ch) {
+                    '\\' -> escaped = true
+                    '[' -> inClass = true
+                    ']' -> inClass = false
+                    '/' -> if (!inClass) { i++; break }
+                }
+                i++
+            }
+            // flags
+            while (i < endOffset && buffer[i].isLetter()) i++
+            tokenStart = start
+            tokenEnd = i
+            tokenType = TalTokens.REGEX
+            return
+        }
+
+        // Match group $0, $1, $12 ... or special $line / $file
+        if (c == '$' && i + 1 < endOffset && buffer[i + 1].isDigit()) {
+            val start = i
+            i += 2
+            while (i < endOffset && buffer[i].isDigit()) i++
+            tokenStart = start
+            tokenEnd = i
+            tokenType = TalTokens.MATCH_GROUP
+            return
+        }
+        if (c == '$' && i + 5 <= endOffset) {
+            val rem = buffer.subSequence(i, minOf(i + 6, endOffset)).toString()
+            when {
+                rem.startsWith("\$line") -> {
+                    tokenStart = i
+                    tokenEnd = i + 5
+                    tokenType = TalTokens.SPECIAL_LITERAL
+                    return
+                }
+                rem.startsWith("\$file") -> {
+                    tokenStart = i
+                    tokenEnd = i + 5
+                    tokenType = TalTokens.SPECIAL_LITERAL
+                    return
+                }
+            }
+        }
+
         // Numbers
         if (c.isDigit()) {
             val start = i
-            i++
-            var hasDot = false
-            while (i < endOffset) {
-                val ch = buffer[i]
-                if (ch == '.' && !hasDot) { hasDot = true; i++; continue }
-                if (!ch.isDigit()) break
+            // Hex 0x...
+            if (c == '0' && i + 1 < endOffset && (buffer[i + 1] == 'x' || buffer[i + 1] == 'X')) {
+                i += 2
+                while (i < endOffset && buffer[i].isHexDigit()) i++
+            } else {
                 i++
+                var hasDot = false
+                while (i < endOffset) {
+                    val ch = buffer[i]
+                    if (ch == '.' && !hasDot) { hasDot = true; i++; continue }
+                    if (!ch.isDigit()) break
+                    i++
+                }
             }
+            tokenStart = start
+            tokenEnd = i
+            tokenType = TalTokens.NUMBER
+            return
+        }
+
+        // Based integer: <radix>#<value> or #<value>
+        if (c == '#' || (c.isDigit() && run {
+                var j = i
+                while (j < endOffset && buffer[j].isDigit()) j++
+                j < endOffset && buffer[j] == '#'
+            })) {
+            val start = i
+            if (c == '#') {
+                // default base value
+                i++
+            } else {
+                // consume radix
+                while (i < endOffset && buffer[i].isDigit()) i++
+                if (i < endOffset && buffer[i] == '#') i++
+            }
+            // consume value (letters/digits allowed)
+            while (i < endOffset && (buffer[i].isLetterOrDigit())) i++
             tokenStart = start
             tokenEnd = i
             tokenType = TalTokens.NUMBER
@@ -197,3 +295,4 @@ class TalLexer : LexerBase() {
 
 private fun Char.isIdentifierStart(): Boolean = this == '_' || this.isLetter()
 private fun Char.isIdentifierPart(): Boolean = this == '_' || this == '-' || this.isLetterOrDigit()
+private fun Char.isHexDigit(): Boolean = this.isDigit() || (this in 'a'..'f') || (this in 'A'..'F')

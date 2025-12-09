@@ -25,6 +25,14 @@ class TalColorSettingsPage : ColorSettingsPage {
         <editor-fold desc="Folded block">
         text "inside fold";
         </editor-fold>
+
+        // Multiline string and regex
+        ${"\"\"\""}
+        multi-line
+        string
+        ${"\"\"\""};
+        #/(.*)@(.*)/i;
+        ${'$'}1; ${'$'}line; ${'$'}file;
     """.trimIndent()
 
     override fun getAdditionalHighlightingTagToDescriptorMap(): Map<String, TextAttributesKey>? = null
@@ -34,6 +42,9 @@ class TalColorSettingsPage : ColorSettingsPage {
         AttributesDescriptor("Identifier", TalSyntaxHighlighter.IDENTIFIER),
         AttributesDescriptor("Number", TalSyntaxHighlighter.NUMBER),
         AttributesDescriptor("String", TalSyntaxHighlighter.STRING),
+        AttributesDescriptor("Regex", TalSyntaxHighlighter.REGEX),
+        AttributesDescriptor("Match group (${ '$' }1)", TalSyntaxHighlighter.MATCH_GROUP),
+        AttributesDescriptor("Special literal (${ '$' }line/${ '$' }file)", TalSyntaxHighlighter.SPECIAL_LITERAL),
         AttributesDescriptor("Line comment", TalSyntaxHighlighter.LINE_COMMENT),
         AttributesDescriptor("Block comment", TalSyntaxHighlighter.BLOCK_COMMENT),
         AttributesDescriptor("Operator", TalSyntaxHighlighter.OPERATION_SIGN),

@@ -27,8 +27,17 @@ class TalSyntaxHighlighter : SyntaxHighlighterBase() {
         val STRING: TextAttributesKey = TextAttributesKey.createTextAttributesKey(
             "TAL_STRING", DefaultLanguageHighlighterColors.STRING
         )
+        val REGEX: TextAttributesKey = TextAttributesKey.createTextAttributesKey(
+            "TAL_REGEX", DefaultLanguageHighlighterColors.STRING
+        )
         val VARIABLE: TextAttributesKey = TextAttributesKey.createTextAttributesKey(
             "TAL_VARIABLE", DefaultLanguageHighlighterColors.PARAMETER
+        )
+        val MATCH_GROUP: TextAttributesKey = TextAttributesKey.createTextAttributesKey(
+            "TAL_MATCH_GROUP", DefaultLanguageHighlighterColors.CONSTANT
+        )
+        val SPECIAL_LITERAL: TextAttributesKey = TextAttributesKey.createTextAttributesKey(
+            "TAL_SPECIAL_LITERAL", DefaultLanguageHighlighterColors.CONSTANT
         )
         val LINE_COMMENT: TextAttributesKey = TextAttributesKey.createTextAttributesKey(
             "TAL_LINE_COMMENT", DefaultLanguageHighlighterColors.LINE_COMMENT
@@ -66,7 +75,11 @@ class TalSyntaxHighlighter : SyntaxHighlighterBase() {
             TalTokens.IDENTIFIER to IDENTIFIER,
             TalTokens.NUMBER to NUMBER,
             TalTokens.STRING to STRING,
+            TalTokens.MULTILINE_STRING to STRING,
+            TalTokens.REGEX to REGEX,
             TalTokens.VARIABLE to VARIABLE,
+            TalTokens.MATCH_GROUP to MATCH_GROUP,
+            TalTokens.SPECIAL_LITERAL to SPECIAL_LITERAL,
             TalTokens.LINE_COMMENT to LINE_COMMENT,
             TalTokens.BLOCK_COMMENT to BLOCK_COMMENT,
             TalTokens.HASH_COMMENT to LINE_COMMENT,
