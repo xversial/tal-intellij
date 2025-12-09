@@ -18,11 +18,16 @@
 - [ ] Configure the [CODECOV_TOKEN](https://docs.codecov.com/docs/quick-start) secret for automated test coverage reports on PRs
 
 <!-- Plugin description -->
-This Fancy IntelliJ Platform Plugin is going to be your implementation of the brilliant ideas that you have.
+TAL Language Support provides syntax highlighting, commenting, and code folding for `.tal` and `.map` files.
 
-This specific section is a source for the [plugin.xml](/src/main/resources/META-INF/plugin.xml) file which will be extracted by the [Gradle](/build.gradle.kts) during the build process.
+Features:
+- Syntax highlighting for keywords, identifiers, numbers, strings, operators, Java-style comments, and `${...}` variable expressions.
+- Java-style single-line (`//`) and block (`/* */`) comments including toggle commenting.
+- Code folding for `<editor-fold desc="..."> ... </editor-fold>` blocks.
+- Code folding for region markers using `// region` ... `// endregion` and `# region` ... `# endregion`.
+- Color settings page to customize highlighting colors.
 
-To keep everything working, do not remove `<!-- ... -->` sections. 
+This section is parsed into the plugin manifest during the build.
 <!-- Plugin description end -->
 
 ## Installation

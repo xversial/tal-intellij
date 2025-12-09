@@ -1,7 +1,7 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
     <id>com.github.xversial.talintellij</id>
-    <name>tal-intellij</name>
+    <name>TAL Language Support</name>
     <vendor>xversial</vendor>
 
     <depends>com.intellij.modules.platform</depends>
@@ -9,7 +9,20 @@
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.xversial.talintellij.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
-        <postStartupActivity implementation="com.github.xversial.talintellij.startup.MyProjectActivity" />
+        <!-- File type and language registration -->
+        <fileType name="TAL" language="TAL" extensions="tal;map" implementationClass="com.github.xversial.talintellij.tal.TalFileType"/>
+
+        <!-- Highlighter and colors -->
+        <lang.syntaxHighlighterFactory language="TAL" implementationClass="com.github.xversial.talintellij.tal.highlighting.TalSyntaxHighlighterFactory"/>
+        <colorSettingsPage implementation="com.github.xversial.talintellij.tal.highlighting.TalColorSettingsPage"/>
+
+        <!-- Commenter for // and /* */ -->
+        <lang.commenter language="TAL" implementationClass="com.github.xversial.talintellij.tal.TalCommenter"/>
+
+        <!-- Parser definition (minimal, flat) to enable PSI, folding, etc. -->
+        <lang.parserDefinition language="TAL" implementationClass="com.github.xversial.talintellij.tal.psi.TalParserDefinition"/>
+
+        <!-- Folding support for <editor-fold> and region blocks -->
+        <lang.foldingBuilder language="TAL" implementationClass="com.github.xversial.talintellij.tal.folding.TalFoldingBuilder"/>
     </extensions>
 </idea-plugin>
