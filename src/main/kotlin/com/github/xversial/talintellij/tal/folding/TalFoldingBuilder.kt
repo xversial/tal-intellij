@@ -3,6 +3,7 @@ package com.github.xversial.talintellij.tal.folding
 import com.intellij.lang.ASTNode
 import com.intellij.lang.folding.FoldingBuilderEx
 import com.intellij.lang.folding.FoldingDescriptor
+import com.intellij.lang.folding.NamedFoldingDescriptor
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
@@ -24,7 +25,11 @@ class TalFoldingBuilder : FoldingBuilderEx() {
             val closeIdx = text.indexOf(closeFold, openEnd + 1)
             if (closeIdx < 0) break
             val range = TextRange(idx, closeIdx + closeFold.length)
-            descriptors += FoldingDescriptor(root.node, range)
+            // Try to extract a stable name for persistence based on desc attribute; fall back to start offset
+            val header = text.subSequence(idx, openEnd + 1).toString()
+            val desc = extractAttribute(header, "desc")
+            val name = (desc?.takeIf { it.isNotBlank() } ?: "editor-fold") + "@" + idx
+            descriptors += NamedFoldingDescriptor(root.node, range, null, name)
             idx = closeIdx + closeFold.length
         }
 
@@ -47,7 +52,9 @@ class TalFoldingBuilder : FoldingBuilderEx() {
                     val start = regionStack.removeLastOrNull()
                     if (start != null) {
                         val range = TextRange(start.start, lineEnd)
-                        descriptors += FoldingDescriptor(root.node, range)
+                        val base = if (start.name.isNotBlank()) start.name else "region"
+                        val name = "$base@${start.start}"
+                        descriptors += NamedFoldingDescriptor(root.node, range, null, name)
                     }
                 }
             }
