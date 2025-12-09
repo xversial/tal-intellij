@@ -59,5 +59,48 @@ class TalFoldingBuilder : FoldingBuilderEx() {
 
     override fun getPlaceholderText(node: ASTNode): String? = "..."
 
+    // Since all our descriptors are attached to the file root node,
+    // use the range-aware override to compute a meaningful placeholder
+    // from the actual folded text segment.
+    override fun getPlaceholderText(node: ASTNode, range: TextRange): String {
+        val fileText = node.psi.text
+        val safeRange = range.intersection(TextRange(0, fileText.length)) ?: return "..."
+        val segment = safeRange.substring(fileText)
+
+        // Try: <editor-fold desc="..."> ... </editor-fold>
+        // Support both single and double quotes
+        val editorFoldIdx = segment.indexOf("<editor-fold", ignoreCase = true)
+        if (editorFoldIdx >= 0) {
+            val header = segment.substring(editorFoldIdx, segment.indexOf('>', editorFoldIdx).let { if (it == -1) segment.length else it })
+            // Extract desc attribute
+            val desc = extractAttribute(header, "desc")
+            if (!desc.isNullOrBlank()) return desc
+            // Fallback: show tag name
+            return "editor-fold"
+        }
+
+        // Try: // region NAME or # region NAME (use first line inside range)
+        val firstLineEnd = segment.indexOf('\n').let { if (it == -1) segment.length else it }
+        val firstLine = segment.substring(0, firstLineEnd)
+        val trimmed = firstLine.trimStart()
+        val lower = trimmed.lowercase()
+        if (lower.startsWith("// region") || lower.startsWith("# region")) {
+            val name = trimmed.substringAfter("region").trim()
+            if (name.isNotEmpty()) return name
+            return "region"
+        }
+
+        // Default placeholder
+        return "..."
+    }
+
+    private fun extractAttribute(header: String, attr: String): String? {
+        // Matches: attr="..." or attr='...'
+        val dq = Regex("(?i)\\b" + Regex.escape(attr) + "\\s*=\\s*\"([^\"]*)\"")
+        val sq = Regex("(?i)\\b" + Regex.escape(attr) + "\\s*=\\s*'([^']*)'")
+        return dq.find(header)?.groupValues?.getOrNull(1)
+            ?: sq.find(header)?.groupValues?.getOrNull(1)
+    }
+
     override fun isCollapsedByDefault(node: ASTNode): Boolean = false
 }
