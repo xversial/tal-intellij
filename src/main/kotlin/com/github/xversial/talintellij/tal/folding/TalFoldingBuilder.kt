@@ -12,20 +12,40 @@ class TalFoldingBuilder : FoldingBuilderEx() {
         val text = document.charsSequence
         val descriptors = mutableListOf<FoldingDescriptor>()
 
-        // <editor-fold desc="..."> ... </editor-fold>
-        val openFold = "<editor-fold"
-        val closeFold = "</editor-fold>"
-        var idx = 0
-        while (true) {
-            idx = text.indexOf(openFold, idx)
-            if (idx < 0) break
-            val openEnd = text.indexOf('>', idx)
-            if (openEnd < 0) break
-            val closeIdx = text.indexOf(closeFold, openEnd + 1)
-            if (closeIdx < 0) break
-            val range = TextRange(idx, closeIdx + closeFold.length)
-            descriptors += FoldingDescriptor(root.node, range)
-            idx = closeIdx + closeFold.length
+        // <editor-fold desc="..."> ... </editor-fold> with arbitrary nesting
+        run {
+            val openFold = "<editor-fold"
+            val closeFold = "</editor-fold>"
+            var idx = 0
+            val stack = ArrayDeque<Int>()
+            while (idx < text.length) {
+                val nextOpen = text.indexOf(openFold, idx)
+                val nextClose = text.indexOf(closeFold, idx)
+                if (nextOpen == -1 && nextClose == -1) break
+
+                val takeOpen = nextOpen != -1 && (nextClose == -1 || nextOpen < nextClose)
+                if (takeOpen) {
+                    // Ensure we found a complete opening tag (has a '>')
+                    val openEnd = text.indexOf('>', nextOpen)
+                    if (openEnd == -1) {
+                        // Malformed tag, skip past the token to avoid infinite loop
+                        idx = nextOpen + openFold.length
+                        continue
+                    }
+                    stack.addLast(nextOpen)
+                    idx = openEnd + 1
+                } else {
+                    // Closing tag; if we have an opener, create a region
+                    val closeIdx = nextClose
+                    val start = stack.removeLastOrNull()
+                    if (start != null) {
+                        val range = TextRange(start, closeIdx + closeFold.length)
+                        descriptors += FoldingDescriptor(root.node, range)
+                    }
+                    idx = closeIdx + closeFold.length
+                }
+            }
+            // Unmatched open tags are ignored
         }
 
         // // region ... -> // endregion and # region -> # endregion
