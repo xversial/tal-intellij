@@ -126,7 +126,19 @@ class TalFoldingBuilder : FoldingBuilderEx() {
 
     private fun withPersistentId(base: String, range: TextRange): String {
         // Append an invisible identifier so each fold region has a unique signature for persistence
-        // while keeping the visible placeholder clean. U+2063 is an invisible separator.
-        return base + "\u2063" + range.startOffset
+        // while keeping the visible placeholder clean. We encode the numeric id entirely using
+        // zero-width characters so nothing visible (like digits) is shown.
+        // U+2063 (Invisible Separator) is used as a delimiter, and the bits are encoded with:
+        //   '0' -> U+200B (Zero Width Space), '1' -> U+200C (Zero Width Non-Joiner)
+        return base + "\u2063" + encodeZeroWidthInt(range.startOffset)
+    }
+
+    private fun encodeZeroWidthInt(value: Int): String {
+        val bits = Integer.toBinaryString(value)
+        val sb = StringBuilder(bits.length)
+        for (ch in bits) {
+            sb.append(if (ch == '0') '\u200B' else '\u200C')
+        }
+        return sb.toString()
     }
 }
