@@ -3,7 +3,6 @@ package com.github.xversial.talintellij.tal.folding
 import com.intellij.lang.ASTNode
 import com.intellij.lang.folding.FoldingBuilderEx
 import com.intellij.lang.folding.FoldingDescriptor
-import com.intellij.lang.folding.NamedFoldingDescriptor
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
@@ -25,11 +24,7 @@ class TalFoldingBuilder : FoldingBuilderEx() {
             val closeIdx = text.indexOf(closeFold, openEnd + 1)
             if (closeIdx < 0) break
             val range = TextRange(idx, closeIdx + closeFold.length)
-            // Use a stable descriptor for persistence but keep a clean display name
-            val header = text.subSequence(idx, openEnd + 1).toString()
-            val desc = extractAttribute(header, "desc")
-            val display = (desc?.takeIf { it.isNotBlank() } ?: "editor-fold")
-            descriptors += NamedFoldingDescriptor(root.node, range, null, display)
+            descriptors += FoldingDescriptor(root.node, range)
             idx = closeIdx + closeFold.length
         }
 
@@ -52,8 +47,7 @@ class TalFoldingBuilder : FoldingBuilderEx() {
                     val start = regionStack.removeLastOrNull()
                     if (start != null) {
                         val range = TextRange(start.start, lineEnd)
-                        val display = if (start.name.isNotBlank()) start.name else "region"
-                        descriptors += NamedFoldingDescriptor(root.node, range, null, display)
+                        descriptors += FoldingDescriptor(root.node, range)
                     }
                 }
             }
@@ -80,9 +74,9 @@ class TalFoldingBuilder : FoldingBuilderEx() {
             val header = segment.substring(editorFoldIdx, segment.indexOf('>', editorFoldIdx).let { if (it == -1) segment.length else it })
             // Extract desc attribute
             val desc = extractAttribute(header, "desc")
-            if (!desc.isNullOrBlank()) return desc
+            if (!desc.isNullOrBlank()) return withPersistentId(desc, range)
             // Fallback: show tag name
-            return "editor-fold"
+            return withPersistentId("editor-fold", range)
         }
 
         // Try: // region NAME or # region NAME (use first line inside range)
@@ -92,12 +86,12 @@ class TalFoldingBuilder : FoldingBuilderEx() {
         val lower = trimmed.lowercase()
         if (lower.startsWith("// region") || lower.startsWith("# region")) {
             val name = trimmed.substringAfter("region").trim()
-            if (name.isNotEmpty()) return name
-            return "region"
+            if (name.isNotEmpty()) return withPersistentId(name, range)
+            return withPersistentId("region", range)
         }
 
         // Default placeholder
-        return "..."
+        return withPersistentId("...", range)
     }
 
     private fun extractAttribute(header: String, attr: String): String? {
@@ -109,4 +103,10 @@ class TalFoldingBuilder : FoldingBuilderEx() {
     }
 
     override fun isCollapsedByDefault(node: ASTNode): Boolean = false
+
+    private fun withPersistentId(base: String, range: TextRange): String {
+        // Append an invisible identifier so each fold region has a unique signature for persistence
+        // while keeping the visible placeholder clean. U+2063 is an invisible separator.
+        return base + "\u2063" + range.startOffset
+    }
 }
